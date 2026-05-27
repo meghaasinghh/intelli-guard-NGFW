@@ -1,9 +1,21 @@
+import os
 import joblib
+import queue
+import threading
 
-model = joblib.load("models/firewall_model.pkl")
+# Shared queue for verdicts
+verdict_queue = queue.Queue()
+
+# Absolute model path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "firewall_model.pkl")
+
+# Load model
+model = joblib.load(MODEL_PATH)
+
 
 def predict_threat(input_data):
-    prob = model.predict_proba(input_data)[0]
+    prob = model.predict_proba([input_data])[0]
     score = max(prob)
 
     if score > 0.9:
@@ -12,6 +24,20 @@ def predict_threat(input_data):
         return "ALERT"
     else:
         return "ALLOW"
-        
-if __name__ == "__main__":
-    print("Model loaded successfully")
+
+
+# Background thread function
+def run(input_queue):
+    while True:
+        features = input_queue.get()
+
+        try:
+            verdict = predict_threat(features)
+
+            verdict_queue.put({
+                "features": features,
+                "verdict": verdict
+            })
+
+        except Exception as e:
+            print("Prediction Error:", e)
