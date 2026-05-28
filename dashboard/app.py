@@ -24,13 +24,17 @@ def get_logs():
 @app.route("/api/stats")
 def get_stats():
     if not os.path.exists(LOG_PATH):
-        return jsonify({"total": 0, "blocked": 0, "allowed": 0, "alerts": 0})
+        return jsonify({"total": 0, "blocked": 0, "allowed": 0, "alerts": 0, "latency_avg": 0.0})
     df = pd.read_csv(LOG_PATH)
+    latency_avg = float(df["latency_ms"].mean()) if "latency_ms" in df and len(df) > 0 else 0.0
+    if pd.isna(latency_avg):
+        latency_avg = 0.0
     return jsonify({
         "total":   len(df),
         "blocked": int((df["verdict"] == "BLOCK").sum()),
         "allowed": int((df["verdict"] == "ALLOW").sum()),
         "alerts":  int((df["verdict"] == "ALERT").sum()),
+        "latency_avg": round(latency_avg, 2),
     })
 
 @app.route("/api/health")
