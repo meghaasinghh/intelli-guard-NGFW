@@ -170,6 +170,43 @@
     
     .sim-modal-active { box-shadow: 0 10px 60px rgba(225, 29, 72, 0.4) !important; border-color: var(--danger) !important; }
     body.sim-active { box-shadow: inset 0 0 100px rgba(225, 29, 72, 0.1); }
+    /* Responsive Media Queries */
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+    
+    @media (max-width: 768px) {
+      header { flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+      .brand-section { flex-direction: column; text-align: center; }
+      .brand-text h1 { font-size: 20px; }
+      .nav-tabs { overflow-x: auto; white-space: nowrap; justify-content: flex-start; max-width: 100%; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+      .nav-tab { flex-shrink: 0; }
+      header > div:last-child { flex-wrap: wrap; justify-content: center; }
+      
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      
+      #sim-modal {
+        top: 20px !important;
+        right: 5% !important;
+        left: 5% !important;
+        width: 90% !important;
+        max-width: none !important;
+        position: fixed !important;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      
+      .chart-wrapper { height: 300px; }
+      .mini-chart { height: 220px; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .nav-tab { padding: 6px 12px; font-size: 11px; }
+      .kpi-value { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
