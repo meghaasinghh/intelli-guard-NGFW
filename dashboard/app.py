@@ -24,17 +24,32 @@ def get_logs():
 @app.route("/api/stats")
 def get_stats():
     if not os.path.exists(LOG_PATH):
-        return jsonify({"total": 0, "blocked": 0, "allowed": 0, "alerts": 0, "latency_avg": 0.0})
+        return jsonify({
+            "total": 0, "blocked": 0, "allowed": 0, "alerts": 0, "latency_avg": 0.0,
+            "protocols": {}, "sources": {}, "top_attackers": {}
+        })
     df = pd.read_csv(LOG_PATH)
     latency_avg = float(df["latency_ms"].mean()) if "latency_ms" in df and len(df) > 0 else 0.0
     if pd.isna(latency_avg):
         latency_avg = 0.0
+        
+    protocols = df["proto"].value_counts().to_dict() if "proto" in df else {}
+    sources = df["source"].value_counts().to_dict() if "source" in df else {}
+    
+    # Top 5 blocked IPs
+    top_attackers = {}
+    if "verdict" in df and "src_ip" in df:
+        top_attackers = df[df["verdict"] == "BLOCK"]["src_ip"].value_counts().head(5).to_dict()
+
     return jsonify({
         "total":   len(df),
-        "blocked": int((df["verdict"] == "BLOCK").sum()),
-        "allowed": int((df["verdict"] == "ALLOW").sum()),
-        "alerts":  int((df["verdict"] == "ALERT").sum()),
+        "blocked": int((df["verdict"] == "BLOCK").sum()) if "verdict" in df else 0,
+        "allowed": int((df["verdict"] == "ALLOW").sum()) if "verdict" in df else 0,
+        "alerts":  int((df["verdict"] == "ALERT").sum()) if "verdict" in df else 0,
         "latency_avg": round(latency_avg, 2),
+        "protocols": protocols,
+        "sources": sources,
+        "top_attackers": top_attackers
     })
 
 @app.route("/api/health")
