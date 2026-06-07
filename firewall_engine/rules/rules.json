@@ -8,6 +8,14 @@
     "source": "STATIC"
   },
   {
+    "comment": "Allow benign simulator traffic",
+    "src_ip": "192.168.1.50",
+    "proto": "ANY",
+    "dst_port": null,
+    "action": "ALLOW",
+    "source": "STATIC"
+  },
+  {
     "comment": "Block SYN flood port — common DoS target",
     "src_ip": "ANY",
     "proto": "TCP",

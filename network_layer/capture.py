@@ -58,7 +58,6 @@ def _run_traffic_simulation():
     import requests
     
     benign_ips = ["192.168.1.50", "192.168.1.75", "192.168.1.99"]
-    attacker_ips = ["192.168.1.120", "192.168.1.200"]
     victim_ip = "192.168.1.10"
     
     while True:
@@ -66,10 +65,15 @@ def _run_traffic_simulation():
             resp = requests.get("http://127.0.0.1:5001/api/sim_state", timeout=1)
             sim_state = resp.json()
         except:
-            sim_state = {"active": False, "mode": "syn_flood", "target": victim_ip, "intensity": 100}
+            sim_state = {"active": False, "mode": "syn_flood", "target": victim_ip, "intensity": 100, "attacker_count": 2}
 
         t_base = time.time()
         
+        attacker_count = max(1, sim_state.get("attacker_count", 2))
+        attacker_ips = [f"192.168.1.{100 + i}" for i in range(attacker_count)]
+        
+        # Baseline traffic is now controlled via the Hacker Console intensities.
+
         if sim_state.get("active"):
             target = sim_state.get("target", victim_ip)
             intensities = sim_state.get("intensities", {})
@@ -80,22 +84,23 @@ def _run_traffic_simulation():
                     continue
                 
                 # Map mode to traffic attributes
+                # Map mode to traffic attributes for specific attacks
                 if mode == "syn_flood":
-                    dport, proto, flags = 80, "TCP", "SYN"
+                    base_dport, base_proto, base_flags = 80, "TCP", "SYN"
                 elif mode == "udp_flood":
-                    dport, proto, flags = random.randint(1024, 65535), "UDP", ""
+                    base_dport, base_proto, base_flags = random.randint(1024, 65535), "UDP", ""
                 elif mode == "icmp_sweep":
-                    dport, proto, flags = 0, "ICMP", ""
+                    base_dport, base_proto, base_flags = 0, "ICMP", ""
                 elif mode == "port_scan":
-                    dport, proto, flags = random.choice([22, 80, 443, 3306, 8080]), "TCP", "SYN"
+                    base_dport, base_proto, base_flags = random.choice([22, 80, 443, 3306, 8080]), "TCP", "SYN"
                 elif mode == "http_flood":
-                    dport, proto, flags = 80, "TCP", "PA"
+                    base_dport, base_proto, base_flags = 80, "TCP", "PA"
                 elif mode == "ping_of_death":
-                    dport, proto, flags = 0, "ICMP", ""
+                    base_dport, base_proto, base_flags = 0, "ICMP", ""
                 elif mode == "xmas_scan":
-                    dport, proto, flags = random.choice([22, 80, 443, 3306, 8080]), "TCP", "FPU"
+                    base_dport, base_proto, base_flags = random.choice([22, 80, 443, 3306, 8080]), "TCP", "FPU"
                 else:
-                    dport, proto, flags = 80, "TCP", "SYN"
+                    base_dport, base_proto, base_flags = 80, "TCP", "SYN"
                     
                 # Intensity 10 to 1000 => scale to 1 to 100 packets per 0.5s loop
                 packets_to_send = max(0, intensity // 10)
@@ -105,8 +110,26 @@ def _run_traffic_simulation():
                 flows_to_generate = max(1, packets_to_send // 5)
                 
                 for f in range(flows_to_generate):
-                    # Pick a steady connection tuple for this micro-burst
-                    src_ip = random.choice(attacker_ips)
+                    # For realworld mix, dynamically select the flow type
+                    if mode == "realworld":
+                        rnd = random.random()
+                        if rnd < 0.75:   # 75% Benign
+                            src_ip = "192.168.1.50"
+                            dport, proto, flags = 443, "TCP", "PA"
+                            sub_mode = "benign"
+                        elif rnd < 0.90: # 15% Alert
+                            src_ip = "192.168.1.200"
+                            dport, proto, flags = random.choice([22, 3389, 445]), "TCP", "S"
+                            sub_mode = "alert"
+                        else:            # 10% Bad
+                            src_ip = random.choice(attacker_ips)
+                            dport, proto, flags = 80, "TCP", "SYN"
+                            sub_mode = "bad"
+                    else:
+                        src_ip = random.choice(attacker_ips)
+                        dport, proto, flags = base_dport, base_proto, base_flags
+                        sub_mode = mode
+                    
                     src_port = random.randint(1024, 65535)
                     
                     for i in range(5):
@@ -116,15 +139,15 @@ def _run_traffic_simulation():
                             "proto":       proto,
                             "src_port":    src_port,
                             "dst_port":    dport,
-                            "length":      random.randint(60000, 65535) if mode == "ping_of_death" else random.randint(64, 1500),
-                            "packet_size": random.randint(60000, 65535) if mode == "ping_of_death" else random.randint(64, 1500),
+                            "length":      random.randint(60000, 65535) if sub_mode == "ping_of_death" else random.randint(64, 1500),
+                            "packet_size": random.randint(60000, 65535) if sub_mode == "ping_of_death" else random.randint(64, 1500),
                             "ttl":         64,
                             "tcp_flags":   flags,
                             "flags":       flags,
                             "timestamp":   t_base + (f * 0.05) + (i * 0.001),
                             "source_mac":  "00:11:22:33:44:55",
                             "dest_mac":    "66:77:88:99:aa:bb",
-                            "http_method": ""
+                            "http_method": "GET" if (sub_mode == "benign" and i == 3) else ""
                         }
                         packet_queue.put(record)
             

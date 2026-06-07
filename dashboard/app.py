@@ -17,6 +17,7 @@ class SimState:
         self.active = False
         self.target = "127.0.0.1"
         self.intensities = {
+            "realworld": 0,
             "syn_flood": 0,
             "udp_flood": 0,
             "icmp_sweep": 0,
@@ -25,6 +26,7 @@ class SimState:
             "ping_of_death": 0,
             "xmas_scan": 0
         }
+        self.attacker_count = 2
         
 sim_state = SimState()
 
@@ -33,7 +35,8 @@ def get_sim_state():
     return jsonify({
         "active": sim_state.active,
         "target": sim_state.target,
-        "intensities": sim_state.intensities
+        "intensities": sim_state.intensities,
+        "attacker_count": sim_state.attacker_count
     })
 # ------------------------------
 
@@ -108,6 +111,7 @@ def simulate():
         sim_state.active = False
     elif command == "update":
         if "target" in data: sim_state.target = data["target"]
+        if "attacker_count" in data: sim_state.attacker_count = int(data["attacker_count"])
         if "intensities" in data:
             for k, v in data["intensities"].items():
                 if k in sim_state.intensities:
@@ -117,7 +121,8 @@ def simulate():
         "status": "ok", 
         "active": sim_state.active,
         "target": sim_state.target,
-        "intensities": sim_state.intensities
+        "intensities": sim_state.intensities,
+        "attacker_count": sim_state.attacker_count
     })
 
 @app.route("/api/threat_intel")
