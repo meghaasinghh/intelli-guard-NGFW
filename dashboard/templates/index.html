@@ -423,6 +423,10 @@
           <div class="panel danger-glow" style="flex: 1;">
             <div class="panel-header">
               <div class="panel-title"><i class="fa-solid fa-skull-crossbones"></i> Top Blocked Adversaries <div class="tooltip-container"><i class="fa-solid fa-circle-info tooltip-icon" style="color:rgba(255,255,255,0.3)"></i><span class="tooltip-text">The most persistent source IPs currently being blocked by the system.</span></div></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="atk-limit-val" style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Top 5</span>
+                <input type="range" id="atk-limit-slider" min="1" max="20" value="5" style="width: 80px;" oninput="document.getElementById('atk-limit-val').innerText = 'Top ' + this.value; fetchStats();">
+              </div>
             </div>
             <div class="ban-grid" id="quarantine-grid">
               <span style="font-size: 11px; color: var(--text-muted); font-style: italic;">Awaiting telemetry...</span>
@@ -889,7 +893,8 @@
 
     async function fetchStats() {
       try {
-        const stats = await fetch("/api/stats").then(r => r.json());
+        const limit = document.getElementById('atk-limit-slider') ? document.getElementById('atk-limit-slider').value : 5;
+        const stats = await fetch(`/api/stats?limit=${limit}`).then(r => r.json());
         
         document.getElementById("total").textContent = stats.total;
         document.getElementById("blocked").textContent = stats.blocked;

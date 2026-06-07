@@ -70,10 +70,12 @@ def get_stats():
     if "verdict" in df and "source" in df:
         engine_blocks = df[df["verdict"] == "BLOCK"]["source"].value_counts().to_dict()
     
-    # Top 5 blocked IPs
+    limit = request.args.get("limit", 5, type=int)
+    
+    # Top blocked IPs based on limit
     top_attackers = {}
     if "verdict" in df and "src_ip" in df:
-        top_attackers = df[df["verdict"] == "BLOCK"]["src_ip"].value_counts().head(5).to_dict()
+        top_attackers = df[df["verdict"] == "BLOCK"]["src_ip"].value_counts().head(limit).to_dict()
 
     avg_score = 0.0
     score_dist = {"safe": 0, "suspicious": 0, "malicious": 0}
