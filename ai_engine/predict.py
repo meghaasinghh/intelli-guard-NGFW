@@ -6,6 +6,7 @@ import os
 import joblib
 import queue
 import numpy as np
+import yaml
 
 # Absolute model path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +14,15 @@ MODEL_PATH = os.path.join(BASE_DIR, "models", "firewall_model.pkl")
 
 # Load model
 model = joblib.load(MODEL_PATH)
+
+# Load thresholds from config.yaml
+CONFIG_PATH = os.path.join(BASE_DIR, "..", "config.yaml")
+
+with open(CONFIG_PATH, "r") as file:
+    config = yaml.safe_load(file)
+
+BLOCK_THRESHOLD = config["ai"]["block_threshold"]
+ALERT_THRESHOLD = config["ai"]["alert_threshold"]
 
 # Shared queue for verdicts (exposed for main.py import)
 verdict_queue = queue.Queue()
@@ -31,12 +41,12 @@ def predict_threat(processed_array, raw_features):
     # Class 1 (Alert) contributes to middle range, Class 2 (Block) heavily
     score = float(prob[1] * 0.45 + prob[2] * 0.95)
 
-    if score > 0.55:
-        verdict = "BLOCK"
-    elif score > 0.40:
-        verdict = "ALERT"
-    else:
-        verdict = "ALLOW"
+if score > BLOCK_THRESHOLD:
+    verdict = "BLOCK"
+elif score > ALERT_THRESHOLD:
+    verdict = "ALERT"
+else:
+    verdict = "ALLOW"
 
     return score, verdict
 
